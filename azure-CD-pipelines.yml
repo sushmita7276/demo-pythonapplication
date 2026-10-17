@@ -25,6 +25,6 @@ steps:
 
       helm upgrade --install python-app ./helm/python-app \
         --set image.repository=demoaksacr2026.azurecr.io/python-application-image \
-        --set image.tag=latest \
+        --set image.tag=71 \
         --wait
 
