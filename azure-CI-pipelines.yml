@@ -15,7 +15,7 @@ steps:
   - task: Docker@2
     displayName: Build and Push Docker Image
     inputs:
-      containerRegistry: 'demo-aks-service-connection'
+      containerRegistry: 'demo-acr-service-connection'
       repository: '$(imageRepository)'
       command: 'buildAndPush'
       Dockerfile: '$(Build.SourcesDirectory)/Dockerfile'
