@@ -1,0 +1,13 @@
+
+replicaCount: 1
+
+image:
+  repository: REPLACE_WITH_ACR_NAME.azurecr.io/python-app
+  tag: latest
+  pullPolicy: Always
+
+service:
+  type: LoadBalancer
+  port: 80
+
+containerPort: 8080
