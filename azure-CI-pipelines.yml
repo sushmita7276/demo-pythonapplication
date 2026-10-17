@@ -1,0 +1,24 @@
+
+trigger:
+  - main
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  acrLoginServer: 'demoaksacr2026.azurecr.io'
+  imageRepository: 'python-application-image'
+
+steps:
+  - checkout: self
+
+  - task: Docker@2
+    displayName: Build and Push Docker Image
+    inputs:
+      containerRegistry: 'demo-aks-service-connection'
+      repository: '$(imageRepository)'
+      command: 'buildAndPush'
+      Dockerfile: '$(Build.SourcesDirectory)/Dockerfile'
+      buildContext: '$(Build.SourcesDirectory)'
+      tags: |
+        $(Build.BuildId)
