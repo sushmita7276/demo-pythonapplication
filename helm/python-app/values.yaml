@@ -11,3 +11,12 @@ service:
   port: 80
 
 containerPort: 8080
+
+sql:
+  server: demoaappserver-sql-2026.database.windows.net
+  database: demoappdb
+
+keyVault:
+  name: demoaks-kv-2026
+  tenantId: ""
+  secretsProviderClientId: ""

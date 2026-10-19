@@ -23,8 +23,17 @@ steps:
         --name demo_aks \
         --overwrite-existing
 
+      TENANT_ID=$(az account show --query tenantId -o tsv)
+      CSI_CLIENT_ID=$(az aks show \
+        --resource-group rg-aks \
+        --name demo_aks \
+        --query addonProfiles.azureKeyvaultSecretsProvider.identity.clientId \
+        -o tsv)
+
       helm upgrade --install python-app ./helm/python-app \
         --set image.repository=demoaksacr2026.azurecr.io/python-application-image \
         --set image.tag=latest \
+        --set keyVault.tenantId="$TENANT_ID" \
+        --set keyVault.secretsProviderClientId="$CSI_CLIENT_ID" \
         --wait
 

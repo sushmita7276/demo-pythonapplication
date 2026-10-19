@@ -1,92 +1,34 @@
-# Simple Python Website Project
+# Azure SQL Login POC
 
-## General
-This is a [Simple Python Website Project](https://github.com/darumor/simple-python-website) that can be used for prototyping modern web services. 
-This application is not very scalable nor data secure and thus should not be used in production.
+A small Bottle web app with registration, login, a welcome page, and logout. User passwords are salted and hashed with PBKDF2-HMAC-SHA256 before they are stored in Azure SQL.
 
-The project uses 
-- **ngrok** as a way to publish the service (no actual dependency) (https://ngrok.com/)
-- **bottle** as web server / adapter (http://bottlepy.org/docs/dev/)
-- **sqlite3** as database (https://www.sqlite.org/index.html)
-- **SQLitePlugin** as database access method
-- **vue.js 3** as frontend component framework (https://vuejs.org/)
-- **vue router 4** as SPA router (https://router.vuejs.org/guide/)
-- **bootstrap 5** as frontend styling system (https://getbootstrap.com/)
-- **axios** as http client (https://axios-http.com/)
-- **MD5** as password hashing method
-- **Signed cookies** and credentials stored in the database for authentication 
-- **Environment variables** for configuration
+## Database setup
 
+Create the Azure SQL server and `demoappdb` database with Terraform. After deployment, connect to `demoappdb` and run [sql/setup.sql](sql/setup.sql). The script creates `dbo.app_users` and a sample account:
 
-## Requirements
-Install dependencies
-    
-    $ cd simple-python-website
-    $ python3 -m venv venv/
-    $ source venv/bin/activate
-    $ python3 -m pip install -r requirements.txt
+- Username: `demo`
+- Password: `DemoPass123!`
 
-Update dependencies (if you make changes)
-    
-    $ cd simple-python-website
-    $ source venv/bin/activate
-    $ pip freeze > requirements.txt
+The app does not create database objects at startup.
 
+## Local run
 
-### Install Ngrok
-First register an Ngrok account and verify your email
+Install the Microsoft ODBC Driver 18 for SQL Server, then install Python dependencies:
 
-    $ snap install ngrok
-    $ ngrok authtoken .... 
+```powershell
+python -m pip install -r requirements.txt
+$env:SQL_SERVER = "<server-name>.database.windows.net"
+$env:SQL_DATABASE = "demoappdb"
+$env:SQL_USERNAME = "sqladminuser"
+$env:SQL_PASSWORD = "<SQL-admin-password>"
+$env:APP_SECRET = "<long-random-cookie-secret>"
+python main.py
+```
 
-## Configuration
-Using environment variables (while developing edit data/config.py)
-- Set database filename (SPW_DATABASE_FILENAME)
-- Set migrations filename (SPW_MIGRATIONS_FILENAME)
-- Set data directory path (SPW_DATA_DIRECTORY)
-- Set static files directory path (SPW_STATIC_FILES_DIRECTORY)
-- Set cookie secret (SPW_COOKIE_SECRET)
-- Set password hash key (SPW_PASSWORD_SECRET)
-- Set http port for the service (SPW_PORT)
-- Set session length / cookie TTL (SPW_SESSION_TTL)
+Open `http://localhost:8080`. The SQL server firewall must allow the client network for local development.
 
-Note: If environment variables are set, they override any / all default values
+## AKS deployment
 
-## Running the application
-Terminal 1
+The Helm chart reads SQL server/database names from a ConfigMap and reads SQL username, password, and `APP_SECRET` from the Key Vault CSI provider's synced Kubernetes Secret. Terraform creates the Key Vault secrets and the AKS Key Vault Secrets Provider identity access policy. The deployment pipeline supplies the Key Vault tenant and CSI identity client IDs.
 
-    $ ngrok http 9999
-
-Terminal 2
-
-    $ python3 main.py
-
-Terminal 3
-
-    $ python3 test/import_test_data.py
-
-Browser1
-
-    http://localhost:9999
-
-Browser2
-
-    http://some-random-url.ngrok.io
-
-## Defaults
-### Default admin credentials
-Default password should be changed before publishing (only present in the test data now)
- 
-    admin / admin-password
-
-## Todo
-There are still thing to do:
-- auth_methods to its own store (separate from users)
-- primary key to auth_methods
-- user creation into one [transaction](https://www.sqlite.org/lang_transaction.html)
-- maybe separate different services to different db's to simulate microservices
-  - auth, userdata, things 
-- userroles and permissions in the cookie?
-  - maybe use a local session storage for the access token
-  - wrap axios into a wrapper that reads the local session storage
-- Google OAuth [frontend](https://developers.google.com/identity/sign-in/web/sign-in) [backend](https://developers.google.com/identity/sign-in/web/backend-auth) 
+The Terraform state contains secret values and must be protected accordingly. The POC's Azure-services SQL firewall rule permits connections from Azure services broadly; restrict it before production use.
