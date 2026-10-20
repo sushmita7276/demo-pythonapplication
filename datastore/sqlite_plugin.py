@@ -1,32 +1,44 @@
 
-import sqlite3
+import os
+import pyodbc
 from bottle import PluginError
 
 
-class SQLitePlugin:
-    name = 'sqlite'
+class SQLServerPlugin:
+    name = "sqlserver"
     api = 2
 
-    def __init__(self, dbfile):
-        self.dbfile = dbfile
-
     def setup(self, app):
-        for other in app.plugins:
-            if isinstance(other, SQLitePlugin):
-                raise PluginError("SQLitePlugin already installed")
+        for plugin in app.plugins:
+            if isinstance(plugin, SQLServerPlugin):
+                raise PluginError("SQLServerPlugin already installed")
 
     def apply(self, callback, route):
         import inspect
 
-        signature = inspect.signature(callback)
-        if 'db' not in signature.parameters:
+        if "db" not in inspect.signature(callback).parameters:
             return callback
 
         def wrapper(*args, **kwargs):
-            connection = sqlite3.connect(self.dbfile)
-            connection.row_factory = sqlite3.Row
+            server = os.environ["SQL_SERVER"]
+            database = os.environ["SQL_DATABASE"]
+            username = os.environ["SQL_USERNAME"]
+            password = os.environ["SQL_PASSWORD"]
+
+            connection_string = (
+                "DRIVER={ODBC Driver 18 for SQL Server};"
+                f"SERVER=tcp:{server},1433;"
+                f"DATABASE={database};"
+                f"UID={username};"
+                f"PWD={password};"
+                "Encrypt=yes;"
+                "TrustServerCertificate=no;"
+                "Connection Timeout=30;"
+            )
+
+            connection = pyodbc.connect(connection_string)
             try:
-                kwargs['db'] = connection
+                kwargs["db"] = connection
                 return callback(*args, **kwargs)
             finally:
                 connection.close()

@@ -1,12 +1,11 @@
-import sqlite3
-from sqlite3 import Error
+
 import os
+import pyodbc
 
 
-class Connection(object):
+class Connection:
     def __init__(self, conf):
         self.config = conf
-        self.database_filename = os.path.join(conf.data_directory, conf.db_filename)
         self.db_connection = None
 
     def __enter__(self):
@@ -14,18 +13,30 @@ class Connection(object):
         return self.db_connection
 
     def __exit__(self, exc_type, exc_value, traceback):
-        if exc_value or exc_type or traceback:
-            print(exc_value)
-            print(exc_type)
-            print(traceback)
-        self.db_connection.commit()
-        self.db_connection.close()
+        if self.db_connection:
+            try:
+                if exc_type:
+                    self.db_connection.rollback()
+                else:
+                    self.db_connection.commit()
+            finally:
+                self.db_connection.close()
 
     def create_connection(self):
-        conn = None
-        try:
-            conn = sqlite3.connect(self.database_filename)
-            return conn
-        except Error as e:
-            print(e)
-        return conn
+        server = os.environ["SQL_SERVER"]
+        database = os.environ["SQL_DATABASE"]
+        username = os.environ["SQL_USERNAME"]
+        password = os.environ["SQL_PASSWORD"]
+
+        connection_string = (
+            "DRIVER={ODBC Driver 18 for SQL Server};"
+            f"SERVER=tcp:{server},1433;"
+            f"DATABASE={database};"
+            f"UID={username};"
+            f"PWD={password};"
+            "Encrypt=yes;"
+            "TrustServerCertificate=no;"
+            "Connection Timeout=30;"
+        )
+
+        return pyodbc.connect(connection_string)
