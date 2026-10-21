@@ -42,17 +42,21 @@ spec:
               path: /metrics
               port: {{ .Values.containerPort }}
             periodSeconds: 5
+            timeoutSeconds: 5
             failureThreshold: 12
           readinessProbe:
             httpGet:
               path: /metrics
               port: {{ .Values.containerPort }}
             periodSeconds: 10
+            timeoutSeconds: 5
           livenessProbe:
             httpGet:
               path: /metrics
               port: {{ .Values.containerPort }}
             periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 5
           envFrom:
             - configMapRef:
                 name: python-app-config
