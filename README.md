@@ -32,3 +32,7 @@ Open `http://localhost:8080`. The SQL server firewall must allow the client netw
 The Helm chart reads SQL server/database names from a ConfigMap and reads SQL username, password, and `APP_SECRET` from the Key Vault CSI provider's synced Kubernetes Secret. Terraform creates the Key Vault secrets and the AKS Key Vault Secrets Provider identity access policy. The deployment pipeline supplies the Key Vault tenant and CSI identity client IDs.
 
 The Terraform state contains secret values and must be protected accordingly. The POC's Azure-services SQL firewall rule permits connections from Azure services broadly; restrict it before production use.
+
+## Monitoring
+
+The CD pipeline installs `kube-prometheus-stack` before deploying the app. Set `grafana_admin_password` as a secret pipeline variable. Grafana is internal to the cluster; access it with `kubectl port-forward -n monitoring svc/monitoring-grafana 3000:80` and browse to `http://localhost:3000`. Prometheus keeps two days of metrics. The app exposes login and registration counters at `/metrics`, which the ServiceMonitor scrapes every 30 seconds.

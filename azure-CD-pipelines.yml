@@ -23,6 +23,23 @@ steps:
         --name demo_aks \
         --overwrite-existing
 
+      if [ -z "$GRAFANA_ADMIN_PASSWORD" ] || [ "$GRAFANA_ADMIN_PASSWORD" = '$(grafana_admin_password)' ]; then
+        echo "Set grafana_admin_password as a secret pipeline variable before deploying."
+        exit 1
+      fi
+
+      helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+      helm repo update
+
+      helm upgrade --install monitoring prometheus-community/kube-prometheus-stack \
+        --version 92.11.0 \
+        --namespace monitoring \
+        --create-namespace \
+        --values ./helm/monitoring/values.yaml \
+        --set-string grafana.adminPassword="$GRAFANA_ADMIN_PASSWORD" \
+        --wait \
+        --timeout 15m
+
       TENANT_ID=$(az account show --query tenantId -o tsv)
       CSI_CLIENT_ID=$(az aks show \
         --resource-group rg-aks \
@@ -35,5 +52,8 @@ steps:
         --set image.tag=latest \
         --set keyVault.tenantId="$TENANT_ID" \
         --set keyVault.secretsProviderClientId="$CSI_CLIENT_ID" \
-        --wait
+        --wait \
+        --timeout 10m
+  env:
+    GRAFANA_ADMIN_PASSWORD: $(grafana_admin_password)
 

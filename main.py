@@ -8,8 +8,19 @@ from html import escape
 
 import pyodbc
 from bottle import Bottle, request, response, redirect, run
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, generate_latest
 
 app = Bottle()
+LOGIN_ATTEMPTS = Counter(
+    "python_app_login_attempts_total",
+    "Login attempts by result",
+    ["result"]
+)
+REGISTRATIONS = Counter(
+    "python_app_registrations_total",
+    "Registration attempts by result",
+    ["result"]
+)
 
 SERVER = os.environ["SQL_SERVER"]
 DATABASE = os.environ["SQL_DATABASE"]
@@ -73,6 +84,12 @@ def page(content):
     </html>"""
 
 
+@app.get("/metrics")
+def metrics():
+    response.content_type = CONTENT_TYPE_LATEST
+    return generate_latest()
+
+
 @app.get("/")
 def home():
     return page("""
@@ -111,6 +128,7 @@ def register():
 
     if (not name or not username or len(username) > 100
             or len(name) > 150 or len(password) < 8):
+        REGISTRATIONS.labels(result="invalid").inc()
         response.status = 400
         return page(
             "<h3>Enter valid details and a password of at least 8 characters.</h3>"
@@ -127,11 +145,13 @@ def register():
                 VALUES (?, ?, ?, ?);
             """, (username, name, salt.hex(), hash_password(password, salt)))
 
+        REGISTRATIONS.labels(result="created").inc()
         return page(
             "<h3>Registration successful!</h3><a href='/'>Login now</a>"
         )
 
     except pyodbc.IntegrityError:
+        REGISTRATIONS.labels(result="duplicate").inc()
         response.status = 409
         return page(
             "<h3>Username already exists.</h3><a href='/register'>Try again</a>"
@@ -157,6 +177,7 @@ def login():
         candidate_hash = hash_password(password, salt)
 
         if hmac.compare_digest(candidate_hash, user.password_hash):
+            LOGIN_ATTEMPTS.labels(result="success").inc()
             response.set_cookie(
                 "account",
                 username,
@@ -169,6 +190,7 @@ def login():
             )
             redirect("/welcome")
 
+    LOGIN_ATTEMPTS.labels(result="failure").inc()
     response.status = 401
     return page(
         "<h3>Invalid username or password.</h3><a href='/'>Try again</a>"
