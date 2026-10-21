@@ -23,15 +23,16 @@ steps:
         --name demo_aks \
         --overwrite-existing
 
-      if [ -z "$GRAFANA_ADMIN_PASSWORD" ] || [ "$GRAFANA_ADMIN_PASSWORD" = '$(grafana_admin_password)' ]; then
-        echo "Set grafana_admin_password as a secret pipeline variable before deploying."
-        exit 1
+      if [ -z "${GRAFANA_ADMIN_PASSWORD:-}" ]; then
+       echo "Set grafana_admin_password as a secret pipeline variable before deploying."
+       exit 1
       fi
 
       helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
       helm repo update
 
-      helm upgrade --install monitoring prometheus-community/kube-prometheus-stack \
+      helm upgrade --install monitoring kube-prometheus-stack \
+        --repo https://prometheus-community.github.io/helm-charts \
         --version 92.11.0 \
         --namespace monitoring \
         --create-namespace \
