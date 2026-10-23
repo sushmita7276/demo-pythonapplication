@@ -9,6 +9,7 @@ image:
 service:
   type: LoadBalancer
   port: 80
+  dnsLabel: demo-python-app
 
 containerPort: 8080
 

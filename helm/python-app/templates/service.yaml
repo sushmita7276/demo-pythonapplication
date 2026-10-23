@@ -5,6 +5,8 @@ metadata:
   name: python-app
   labels:
     app: python-app
+  annotations:
+    service.beta.kubernetes.io/azure-dns-label-name: {{ .Values.service.dnsLabel | quote }}
 spec:
   type: {{ .Values.service.type }}
   selector:
